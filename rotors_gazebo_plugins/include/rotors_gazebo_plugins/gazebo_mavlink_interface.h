@@ -28,20 +28,25 @@
 #include <gazebo/common/Plugin.hh>
 #include <gazebo/gazebo.hh>
 #include <gazebo/physics/physics.hh>
-#include <mav_msgs/CommandMotorSpeed.h>
-#include <mav_msgs/MotorSpeed.h>
+#include <mav_msgs/Actuators.h>
+#include <mav_msgs/default_topics.h>
+// #include <mav_msgs/MotorSpeed.h>
 #include <ros/callback_queue.h>
 #include <ros/ros.h>
 #include <sensor_msgs/Imu.h>
 #include <stdio.h>
 
 #include "rotors_gazebo_plugins/common.h"
+#include <iostream>
+#include <math.h>
+#include <deque>
+#include <random>
 #include <mavros_msgs/mavlink_convert.h>
 
 namespace gazebo {
 
 // Default values
-static const std::string kDefaultNamespace = "";
+// static const std::string kDefaultNamespace = "";
 
 // This just proxies the motor commands from command/motor_speed to the single motors via internal
 // ConsPtr passing, such that the original commands don't have to go n_motors-times over the wire.
@@ -92,7 +97,7 @@ class GazeboMavlinkInterface : public ModelPlugin {
 
   boost::thread callback_queue_thread_;
   void QueueThread();
-  void CommandMotorMavros(const mav_msgs::CommandMotorSpeedPtr& input_reference_msg);
+  void CommandMotorMavros(const mav_msgs::ActuatorsPtr& input_reference_msg);
   void MavlinkControlCallback(const mavros_msgs::Mavlink::ConstPtr &rmsg);
   void ImuCallback(const sensor_msgs::ImuConstPtr& imu_msg);
 
@@ -118,6 +123,10 @@ class GazeboMavlinkInterface : public ModelPlugin {
   math::Vector3 gravity_W_;
   math::Vector3 velocity_prev_W_;
   math::Vector3 mag_W_; 
+
+
+  std::default_random_engine random_generator_;
+  std::normal_distribution<float> standard_normal_distribution_;
 };
 }
 

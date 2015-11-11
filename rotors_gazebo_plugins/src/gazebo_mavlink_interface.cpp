@@ -60,7 +60,7 @@ void GazeboMavlinkInterface::Load(physics::ModelPtr _model, sdf::ElementPtr _sdf
   // Subscriber to IMU sensor_msgs::Imu Message.
   imu_sub_ = node_handle_->subscribe(imu_sub_topic_, 10, &GazeboMavlinkInterface::ImuCallback, this);
   
-  motor_velocity_reference_pub_ = node_handle_->advertise<mav_msgs::CommandMotorSpeed>(motor_velocity_reference_pub_topic_, 10);
+  motor_velocity_reference_pub_ = node_handle_->advertise<mav_msgs::Actuators>(motor_velocity_reference_pub_topic_, 10);
   hil_sensor_pub_ = node_handle_->advertise<mavros_msgs::Mavlink>(hil_sensor_mavlink_pub_topic_, 10);
 
   _rotor_count = 4;
@@ -71,22 +71,26 @@ void GazeboMavlinkInterface::Load(physics::ModelPtr _model, sdf::ElementPtr _sdf
   gravity_W_ = world_->GetPhysicsEngine()->GetGravity();
 
   // Magnetic field data for Zurich from WMM2015 (10^5xnanoTesla (N, E, D))
-  mag_W_ = {0.21523, 0.00771, 0.42741};
+  
+  mag_W_.x = 0.21523;
+  mag_W_.y = 0.00771;
+  mag_W_.z = 0.42741;
 
 }
 
 // This gets called by the world update start event.
 void GazeboMavlinkInterface::OnUpdate(const common::UpdateInfo& /*_info*/) {
-  gzerr << "[gazebo_mavlink_interface] Please specify a robotNamespace.\n";
-  if(!received_first_referenc_)
+
+  if(!received_first_referenc_) 
     return;
+
 
   common::Time now = world_->GetSimTime();
 
-  mav_msgs::CommandMotorSpeedPtr turning_velocities_msg(new mav_msgs::CommandMotorSpeed);
+  mav_msgs::ActuatorsPtr turning_velocities_msg(new mav_msgs::Actuators);
 
   for (int i = 0; i < input_reference_.size(); i++)
-  turning_velocities_msg->motor_speed.push_back(input_reference_[i]);
+  turning_velocities_msg->angular_velocities.push_back(input_reference_[i]);
   turning_velocities_msg->header.stamp.sec = now.sec;
   turning_velocities_msg->header.stamp.nsec = now.nsec;
 
@@ -108,9 +112,25 @@ void GazeboMavlinkInterface::OnUpdate(const common::UpdateInfo& /*_info*/) {
   velocity_current_W_xy.z = 0.0;
 
   // TODO: Remove GPS message from IMU plugin. Added gazebo GPS plugin. This is temp here.
-  float lat_zurich = 47.3667;  // deg
-  float long_zurich = 8.5500;  // deg
+  double lat_zurich = 47.3667 * M_PI / 180 ;  // rad
+  double lon_zurich = 8.5500 * M_PI / 180;  // rad
   float earth_radius = 6353000;  // m
+
+  // reproject local position to gps coordinates
+  double x_rad = pos_W_I.x / earth_radius;
+  double y_rad = -pos_W_I.y / earth_radius;
+  double c = sqrt(x_rad * x_rad + y_rad * y_rad);
+  double sin_c = sin(c);
+  double cos_c = cos(c);
+  double lat_rad;
+  double lon_rad;
+  if (c != 0.0) {
+    lat_rad = asin(cos_c * sin(lat_zurich) + (x_rad * sin_c * cos(lat_zurich)) / c);
+    lon_rad = (lon_zurich + atan2(y_rad * sin_c, c * cos(lat_zurich) * cos_c - x_rad * sin(lat_zurich) * sin_c));
+  } else {
+   lat_rad = lat_zurich;
+    lon_rad = lon_zurich;
+  }
   
   common::Time gps_update(gps_update_interval_);
 
@@ -119,8 +139,8 @@ void GazeboMavlinkInterface::OnUpdate(const common::UpdateInfo& /*_info*/) {
 
     hil_gps_msg_.time_usec = current_time.nsec*1000;
     hil_gps_msg_.fix_type = 3;
-    hil_gps_msg_.lat = (lat_zurich + (pos_W_I.x/earth_radius)*180/3.1416) * 10000000;
-    hil_gps_msg_.lon = (long_zurich + (-pos_W_I.y/earth_radius)*180/3.1416) * 10000000;
+    hil_gps_msg_.lat = lat_rad * 180 / M_PI * 1e7;
+    hil_gps_msg_.lon = lon_rad * 180 / M_PI * 1e7;
     hil_gps_msg_.alt = pos_W_I.z * 1000;
     hil_gps_msg_.eph = 100;
     hil_gps_msg_.epv = 100;
@@ -144,10 +164,10 @@ void GazeboMavlinkInterface::OnUpdate(const common::UpdateInfo& /*_info*/) {
   }
 }
 
-void GazeboMavlinkInterface::CommandMotorMavros(const mav_msgs::CommandMotorSpeedPtr& input_reference_msg) {
-  input_reference_.resize(input_reference_msg->motor_speed.size());
-  for (int i = 0; i < input_reference_msg->motor_speed.size(); ++i) {
-    input_reference_[i] = input_reference_msg->motor_speed[i];
+void GazeboMavlinkInterface::CommandMotorMavros(const mav_msgs::ActuatorsPtr& input_reference_msg) {
+  input_reference_.resize(input_reference_msg->angular_velocities.size());
+  for (int i = 0; i < input_reference_msg->angular_velocities.size(); ++i) {
+    input_reference_[i] = input_reference_msg->angular_velocities[i];
   }
   received_first_referenc_ = true;
 }
@@ -173,13 +193,13 @@ void GazeboMavlinkInterface::MavlinkControlCallback(const mavros_msgs::Mavlink::
     inputs.control[7] =(double)act_msg.aux4;
 
     // publish message
-    double scaling = 150;
-    double offset = 600;
+    double scaling = 340;
+    double offset = 500;
 
-    mav_msgs::CommandMotorSpeedPtr turning_velocities_msg(new mav_msgs::CommandMotorSpeed);
+    mav_msgs::ActuatorsPtr turning_velocities_msg(new mav_msgs::Actuators);
 
     for (int i = 0; i < _rotor_count; i++) {
-      turning_velocities_msg->motor_speed.push_back(inputs.control[i] * scaling + offset);
+      turning_velocities_msg->angular_velocities.push_back(inputs.control[i] * scaling + offset);
     }
 
     CommandMotorMavros(turning_velocities_msg);
@@ -203,6 +223,11 @@ void GazeboMavlinkInterface::ImuCallback(const sensor_msgs::ImuConstPtr& imu_mes
   C_W_I.z = imu_message->orientation.z;
 
   math::Vector3 mag_I = C_W_I.RotateVectorReverse(mag_W_); // TODO: Add noise based on bais and variance like for imu and gyro
+  math::Vector3 body_vel = C_W_I.RotateVectorReverse(model_->GetWorldLinearVel());
+  
+  standard_normal_distribution_ = std::normal_distribution<float>(0, 0.01f);
+
+  float mag_noise = standard_normal_distribution_(random_generator_);
 
   hil_sensor_msg_.time_usec = imu_message->header.stamp.nsec*1000;
   hil_sensor_msg_.xacc = imu_message->linear_acceleration.x;
@@ -211,11 +236,11 @@ void GazeboMavlinkInterface::ImuCallback(const sensor_msgs::ImuConstPtr& imu_mes
   hil_sensor_msg_.xgyro = imu_message->angular_velocity.x;
   hil_sensor_msg_.ygyro = imu_message->angular_velocity.y;
   hil_sensor_msg_.zgyro = imu_message->angular_velocity.z;
-  hil_sensor_msg_.xmag = mag_I.x;
-  hil_sensor_msg_.ymag = mag_I.y;
-  hil_sensor_msg_.zmag = mag_I.z;
+  hil_sensor_msg_.xmag = mag_I.x + mag_noise;
+  hil_sensor_msg_.ymag = mag_I.y + mag_noise;;
+  hil_sensor_msg_.zmag = mag_I.z + mag_noise;;
   hil_sensor_msg_.abs_pressure = 0.0;
-  hil_sensor_msg_.diff_pressure = 0.0;
+  hil_sensor_msg_.diff_pressure = 0.5*1.2754*body_vel.x*body_vel.x;
   hil_sensor_msg_.pressure_alt = pos_W_I.z;
   hil_sensor_msg_.temperature = 0.0;
   hil_sensor_msg_.fields_updated = 4095;  // 0b1111111111111 (All updated since new data with new noise added always)

@@ -2,12 +2,13 @@ RotorS
 ===============
 
 RotorS is a MAV gazebo simulator.
-It provides some multirotor models such as the [AscTec Hummingbird](http://www.asctec.de/en/uav-uas-drone-products/asctec-hummingbird/), the [AscTec Pelican](http://www.asctec.de/en/uav-uas-drone-products/asctec-pelican/), the [AscTec Firefly](http://www.asctec.de/en/uav-uas-drone-products/asctec-firefly/), but the simulator is not limited for the use with these multicopters.
+It provides some multirotor models such as the [AscTec Hummingbird](http://www.asctec.de/en/uav-uas-drone-products/asctec-hummingbird/), the [AscTec Pelican](http://www.asctec.de/en/uav-uas-drone-products/asctec-pelican/), or the [AscTec Firefly](http://www.asctec.de/en/uav-uas-drone-products/asctec-firefly/), but the simulator is not limited for the use with these multicopters.
 
 There are simulated sensors coming with the simulator such as an IMU, a generic odometry sensor, and the [VI-Sensor](http://wiki.ros.org/vi_sensor), which can be mounted on the multirotor.
 
 This packages also contains some example controllers, basic worlds, a joystick interface, and example launch files.
 
+Below we provide the instructions necessary for getting started. See RotorS' wiki for more instructions and examples (https://github.com/ethz-asl/rotors_simulator/wiki).
 
 Installation Instructions
 -------------------------
@@ -38,8 +39,6 @@ Installation Instructions
  $ cd ~/catkin_ws/src
  $ git clone git@github.com:ethz-asl/rotors_simulator.git
  $ git clone git@github.com:ethz-asl/mav_comm.git
- $ git clone git@github.com:ethz-asl/glog_catkin.git
- $ git clone git@github.com:catkin/catkin_simple.git
  ```
   > **Note** if you want to use `wstool` you can replace the above commands with
     ```
@@ -66,7 +65,7 @@ Basic Usage
 Launch the simulator with a hex-rotor helicopter model, in our case, the AscTec Firefly.
 
 ```
-$ roslaunch rotors_gazebo firefly_empty_world.launch
+$ roslaunch rotors_gazebo mav_empty_world.launch mav_name:=firefly
 ```
 
 > **Note** The first run of gazebo might take considerably long, as it will download some models from an online database.
@@ -93,7 +92,7 @@ We will here also show how to write a stabilizing controller and how you can con
 We will for now just send some constant motor velocities to the multicopter.
 
 ```
-$ rostopic pub /firefly/command/motors mav_msgs/CommandMotorSpeed '{motor_speed: [100, 100, 100, 100, 100, 100]}'
+$ rostopic pub /firefly/command/motor_speed mav_msgs/Actuators '{angular_velocities: [100, 100, 100, 100, 100, 100]}'
 ```
 
 > **Note** The size of the `motor_speed` array should be equal to the number of motors you have in your model of choice (e.g. 6 in the Firefly model).
@@ -107,7 +106,7 @@ You should see (if you unpaused the simulator and you have a multicopter in it),
 You can let the helicopter hover with ground truth odometry (perfect state estimation), by launching:
 
 ```
-$ roslaunch rotors_gazebo firefly_hovering_example.launch
+$ roslaunch rotors_gazebo mav_hovering_example.launch mav_name:=firefly
 ```
 
 #### Create an attitude controller
