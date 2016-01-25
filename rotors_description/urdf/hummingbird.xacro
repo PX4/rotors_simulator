@@ -25,6 +25,8 @@ for Quadrocopter Control by Jian Wang et al.) -->
   <xacro:property name="namespace" value="hummingbird" />
   <xacro:property name="rotor_velocity_slowdown_sim" value="10" />
   <xacro:property name="mesh_file" value="hummingbird.dae" />
+  <xacro:property name="mesh_scale" value="1 1 1"/>
+  <xacro:property name="mesh_scale_prop" value=".12 .12 .12"/>
   <xacro:property name="mass" value="0.68" /> <!-- [kg] -->
   <xacro:property name="body_width" value="0.1" /> <!-- [m] -->
   <xacro:property name="body_height" value="0.12" /> <!-- [m] -->
@@ -63,7 +65,9 @@ for Quadrocopter Control by Jian Wang et al.) -->
     mass="${mass}"
     body_width="${body_width}"
     body_height="${body_height}"
-    mesh_file="${mesh_file}">
+    mesh_file="${mesh_file}"
+    mesh_scale="${mesh_scale}"
+    color="DarkGrey">
     <xacro:insert_block name="body_inertia" />
   </xacro:multirotor_base_macro>
 
@@ -83,6 +87,8 @@ for Quadrocopter Control by Jian Wang et al.) -->
     motor_number="0"
     rotor_drag_coefficient="${rotor_drag_coefficient}"
     rolling_moment_coefficient="${rolling_moment_coefficient}"
+    mesh ="propeller"
+    mesh_scale="${mesh_scale_prop}"
     color="Red">
     <origin xyz="${arm_length} 0 ${rotor_offset_top}" rpy="0 0 0" />
     <xacro:insert_block name="rotor_inertia" />
@@ -103,6 +109,8 @@ for Quadrocopter Control by Jian Wang et al.) -->
     motor_number="1"
     rotor_drag_coefficient="${rotor_drag_coefficient}"
     rolling_moment_coefficient="${rolling_moment_coefficient}"
+    mesh ="propeller"
+    mesh_scale="${mesh_scale_prop}"
     color="Blue">
     <origin xyz="0 ${arm_length} ${rotor_offset_top}" rpy="0 0 0" />
     <xacro:insert_block name="rotor_inertia" />
@@ -123,6 +131,8 @@ for Quadrocopter Control by Jian Wang et al.) -->
     motor_number="2"
     rotor_drag_coefficient="${rotor_drag_coefficient}"
     rolling_moment_coefficient="${rolling_moment_coefficient}"
+    mesh ="propeller"
+    mesh_scale="${mesh_scale_prop}"
     color="Blue">
     <origin xyz="-${arm_length} 0 ${rotor_offset_top}" rpy="0 0 0" />
     <xacro:insert_block name="rotor_inertia" />
@@ -143,6 +153,8 @@ for Quadrocopter Control by Jian Wang et al.) -->
     motor_number="3"
     rotor_drag_coefficient="${rotor_drag_coefficient}"
     rolling_moment_coefficient="${rolling_moment_coefficient}"
+    mesh ="propeller"
+    mesh_scale="${mesh_scale_prop}"
     color="Blue">
     <origin xyz="0 -${arm_length} ${rotor_offset_top}" rpy="0 0 0" />
     <xacro:insert_block name="rotor_inertia" />

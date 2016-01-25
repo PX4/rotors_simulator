@@ -167,7 +167,7 @@ void GazeboOdometryPlugin::Load(physics::ModelPtr _model, sdf::ElementPtr _sdf) 
                 noise_normal_angular_velocity.z * noise_normal_angular_velocity.z;
   twist_covariance = twist_covd.asDiagonal();
 
-  link_name_ = namespace_ + "/" + link_name_;
+  //link_name_ = namespace_ + "/" + link_name_;
 
   // Listen to the update event. This event is broadcast every
   // simulation iteration.
