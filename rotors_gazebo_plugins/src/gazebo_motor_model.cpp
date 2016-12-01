@@ -151,7 +151,7 @@ void GazeboMotorModel::UpdateForcesAndMoments() {
   // Apply air_drag to link.
   link_->AddForce(air_drag);
   // Moments
-  link_->AddRelativeTorque(math::Vector3(0, 0, -turning_direction_ * force * moment_constant_));
+  joint_->SetForce(0, turning_direction_ * force * moment_constant_);
 
   math::Vector3 rolling_moment;
   // - \omega * \mu_1 * V_A^{\perp}
